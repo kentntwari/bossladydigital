@@ -10,8 +10,27 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@prisma/client": "^5.11.0",
+    "@stripe/stripe-js": "^3.2.0",
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@trpc/client": "^10.45.2",
+    "@trpc/server": "^10.45.2",
     "nuxt": "^3.11.0",
+    "stripe": "^14.23.0",
+    "trpc-nuxt": "^0.10.20",
+    "ts-toolbelt": "^9.6.0",
     "vue": "^3.4.21",
-    "vue-router": "^4.3.0"
+    "vue-router": "^4.3.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@nuxtjs/kinde": "^0.1.9",
+    "@nuxtjs/tailwindcss": "^6.11.4",
+    "@total-typescript/ts-reset": "^0.5.1",
+    "@types/node": "^20.11.30",
+    "@vueuse/nuxt": "^10.9.0",
+    "prisma": "^5.11.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
   }
 }
