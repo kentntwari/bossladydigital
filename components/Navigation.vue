@@ -14,7 +14,7 @@
       link: "terms and conditions",
       path: "/terms",
     },
-  ];
+  ] as const;
 
   watch(
     () => isMobileMenu.value,
@@ -72,7 +72,28 @@
         @click="isMobileMenu = false"
         >{{ link.link }}</NuxtLink
       >
-      <p class="uppercase">Log In</p>
+      <LoginLink
+        v-if="!$auth.loggedIn"
+        to="/api/login"
+        class="uppercase"
+        external
+      >
+        Log in
+      </LoginLink>
+      <NuxtLink
+        v-else
+        to="/account"
+        class="uppercase text-center"
+        @click="isMobileMenu = false"
+        >My account</NuxtLink
+      >
+      <NuxtLink
+        v-show="$auth.loggedIn"
+        to="/api/logout"
+        class="uppercase"
+        external
+        >Log out</NuxtLink
+      >
     </ul>
   </nav>
 </template>
