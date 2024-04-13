@@ -14,11 +14,10 @@ datasource db {
 }
 
 model User {
-  id        String  @id @default(cuid())
-  firstName String  @map("first_name")
-  lastName  String  @map("last_name")
-  email     String  @unique
-  Order     Order[]
+  id     String  @id @default(cuid())
+  name   String
+  email  String  @unique
+  orders Order[]
 
   @@map("users")
 }
@@ -32,19 +31,39 @@ model Product {
   currency        String
   description     String
   checklistUrl    String  @map("checklist_url")
-  Order           Order[]
+  orders          Order[]
 
   @@map("products")
 }
 
 model Order {
   id        String   @id @default(cuid())
-  User      User     @relation(fields: [userId], references: [id])
-  Product   Product  @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+  payment   Payment  @relation(fields: [paymentId], references: [id])
   userId    String   @map("user_id")
   productId String   @map("product_id")
+  paymentId String   @map("payment_id")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  session   Session?
 
   @@map("orders")
+}
+
+model Payment {
+  id      String   @id @default(cuid())
+  isDone  Boolean  @map("is_done")
+  order   Order[]
+  session Session?
+}
+
+model Session {
+  id              String  @id @default(cuid())
+  stripeSessionId String  @unique @map("stripe_session_id")
+  hasBeenViewed   Boolean @default(false) @map("has_been_viewed")
+  order           Order   @relation(fields: [orderId], references: [id])
+  payment         Payment @relation(fields: [paymentId], references: [id])
+  orderId         String  @unique @map("order_id")
+  paymentId       String  @unique @map("payment_id")
 }
