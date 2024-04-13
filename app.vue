@@ -4,7 +4,7 @@
 
 <template>
   <div
-    class="py-4 min-h-screen flex flex-col justify-between text-base text-[#1a1a1a]"
+    class="py-4 min-h-screen min-h-[100svh] flex flex-col justify-between text-base text-[#1a1a1a]"
     :class="[route.path === '/' ? 'bg-[#cdcdcd]' : 'bg-[#f5f5f5]']"
   >
     <header class="w-full">
