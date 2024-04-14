@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import prisma from "./prisma";
-import { zodProductSchema } from "./zodSchemas";
+import { productSchema } from "./zodSchemas";
 
 export async function getSessionFromDb(sessionId: string) {
   try {
@@ -18,26 +18,27 @@ export async function getSessionFromDb(sessionId: string) {
   }
 }
 
-export async function getOrdersBySession(sessionId: string, userEmail: string) {
+export async function getOrdersBySession(
+  sessionId: string,
+  customerEmail: string
+) {
   try {
     const currentSession = await getSessionFromDb(sessionId);
 
-    const currentUser = await prisma.user.findFirst({
+    const currentCustomer = await prisma.customer.findFirst({
       where: {
-        email: userEmail,
+        email: customerEmail,
       },
     });
 
-    console.log(userEmail);
-
-    if (!currentUser) throw new Error("User not found");
+    if (!currentCustomer) throw new Error("Customer not found");
 
     if (!currentSession) throw new Error("Session not found");
 
     const orders = await prisma.order.findFirst({
       where: {
         id: currentSession.orderId,
-        userId: currentUser.id,
+        customerId: currentCustomer.id,
       },
       select: {
         product: true,
@@ -95,7 +96,7 @@ export async function getProducts() {
 export async function getCustomerOrders(email: string) {
   try {
     const orders = await prisma.$transaction(async (tx) => {
-      const customer = await tx.user.findUnique({
+      const customer = await tx.customer.findUnique({
         where: {
           email: email,
         },
@@ -105,7 +106,7 @@ export async function getCustomerOrders(email: string) {
 
       const purchasedProducts = await tx.order.findMany({
         where: {
-          userId: customer.id,
+          customerId: customer.id,
         },
         select: {
           productId: true,
@@ -138,9 +139,7 @@ export async function getCustomerOrders(email: string) {
   }
 }
 
-export async function createNewProduct(
-  product: z.infer<typeof zodProductSchema>
-) {
+export async function createNewProduct(product: z.infer<typeof productSchema>) {
   try {
     await prisma.product.create({
       data: {
@@ -162,8 +161,8 @@ export async function createNewProduct(
 }
 
 export async function createOrder(
-  userName: string,
-  userEmail: string,
+  customerName: string,
+  customerEmail: string,
   productId: string,
   sessionId: string,
   isPaymentDone: boolean
@@ -171,8 +170,8 @@ export async function createOrder(
   try {
     await prisma.$transaction(async (tx) => {
       //find user
-      const currentUser = await tx.user.findUnique({
-        where: { email: userEmail },
+      const currentCustomer = await tx.customer.findUnique({
+        where: { email: customerEmail },
       });
 
       const productPurchased = await tx.product.findFirst({
@@ -189,17 +188,17 @@ export async function createOrder(
 
       if (!productPurchased) throw new Error("Product not found");
 
-      if (!currentUser) {
-        const newUser = await tx.user.create({
+      if (!currentCustomer) {
+        const newCustomer = await tx.customer.create({
           data: {
-            name: userName,
-            email: userEmail,
+            name: customerName,
+            email: customerEmail,
           },
         });
 
         return await tx.order.create({
           data: {
-            userId: newUser.id,
+            customerId: newCustomer.id,
             productId: productPurchased.id,
             paymentId: payment.id,
             session: {
@@ -212,10 +211,10 @@ export async function createOrder(
         });
       }
 
-      if (currentUser) {
+      if (currentCustomer) {
         return await tx.order.create({
           data: {
-            userId: currentUser.id,
+            customerId: currentCustomer.id,
             productId: productPurchased.id,
             paymentId: payment.id,
             session: {
@@ -236,7 +235,7 @@ export async function createOrder(
   }
 }
 
-export async function updateProduct(product: z.infer<typeof zodProductSchema>) {
+export async function updateProduct(product: z.infer<typeof productSchema>) {
   try {
     await prisma.product.upsert({
       where: {
@@ -282,36 +281,36 @@ function logErrors(error: unknown) {
     // This error is thrown when the query is invalid
     case error instanceof Prisma.PrismaClientKnownRequestError:
       console.error("PrismaClientKnownRequestError", error.message);
-      break;
+      throw error;
 
     // This error is thrown when the Prisma Client encounters an unknown error
     case error instanceof Prisma.PrismaClientUnknownRequestError:
       console.error("PrismaClientUnknownRequestError", error.message);
-      break;
+      throw error;
 
     // This error is thrown when the Prisma Client encounters a Rust panic
     case error instanceof Prisma.PrismaClientRustPanicError:
       console.error("PrismaClientRustPanicError", error.message);
-      break;
+      throw error;
 
     // This error is thrown when the Prisma Client could not be initialized
     case error instanceof Prisma.PrismaClientInitializationError:
       console.error("PrismaClientInitializationError", error.message);
-      break;
+      throw error;
 
     // This error is thrown when validation fails, read more here: https://www.prisma.io/docs/orm/reference/error-reference
     case error instanceof Prisma.PrismaClientValidationError:
       console.error("PrismaClientValidationError", error.message);
-      break;
+      throw error;
 
     // This error is thrown when you try to call `findMany` on an undefined object
     case error instanceof TypeError:
       console.error("TypeError", error.message);
-      break;
+      throw error;
 
     default:
       // Unknown error
       console.error("Unknown error", error);
-      break;
+      throw error;
   }
 }
