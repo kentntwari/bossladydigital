@@ -1,80 +1,74 @@
 import { z } from "zod";
-import { zodProductSchema } from "~/utils/zodSchemas";
+import { TRPCError } from "@trpc/server";
 import { publicProcedure, router } from "../trpc";
+import * as s from "~/utils/zodSchemas";
 import * as db from "~/utils/db";
 import { stripe } from "~/utils/stripe";
 
+async function handleAsyncWithTRPCError<T>(fn: () => Promise<T>) {
+  try {
+    return await fn();
+  } catch (error) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Something went wrong",
+      cause: error,
+    });
+  }
+}
+
 export const appRouter = router({
-  getProducts: publicProcedure.query(() => db.getProducts()),
+  getProducts: publicProcedure.query(() =>
+    handleAsyncWithTRPCError(db.getProducts)
+  ),
 
   getCustomerOrders: publicProcedure
-    .input(
-      z.object({
-        email: z.string().email(),
-      })
-    )
-    .query(({ input: { email } }) => db.getCustomerOrders(email)),
+    .input(s.getCustomerOrdersSchema)
+    .query(({ input: { email } }) =>
+      handleAsyncWithTRPCError(() => db.getCustomerOrders(email))
+    ),
 
   createProduct: publicProcedure
-    .input(zodProductSchema)
+    .input(s.productSchema)
     .mutation(({ input }) => db.createNewProduct(input)),
 
   createOrder: publicProcedure
-    .input(
-      z.object({
-        user: z.object({
-          name: z.string().min(1),
-          email: z.string().email(),
-        }),
-        productId: z.string(),
-        sessionId: z.string(),
-        isPaymentDone: z.boolean(),
-      })
-    )
-    .mutation(({ input: { user, productId, sessionId, isPaymentDone } }) =>
-      db.createOrder(user.name, user.email, productId, sessionId, isPaymentDone)
+    .input(s.createOrderSchema)
+    .mutation(({ input: { customer, productId, sessionId, isPaymentDone } }) =>
+      handleAsyncWithTRPCError(() =>
+        db.createOrder(
+          customer.name,
+          customer.email,
+          productId,
+          sessionId,
+          isPaymentDone
+        )
+      )
     ),
 
   getStoredSession: publicProcedure
-    .input(
-      z.object({
-        sessionId: z.string(),
-      })
-    )
-    .query(({ input: { sessionId } }) => db.getSessionFromDb(sessionId)),
+    .input(s.getStoredSessionSchema)
+    .query(({ input: { sessionId } }) =>
+      handleAsyncWithTRPCError(() => db.getSessionFromDb(sessionId))
+    ),
 
   getSessionOrders: publicProcedure
-    .input(
-      z.object({
-        sessionId: z.string(),
-        userEmail: z.string().email(),
-      })
-    )
-    .query(({ input: { sessionId, userEmail } }) =>
-      db.getOrdersBySession(sessionId, userEmail)
+    .input(s.getSessionOrdersSchema)
+    .query(({ input: { sessionId, customerEmail } }) =>
+      handleAsyncWithTRPCError(() =>
+        db.getOrdersBySession(sessionId, customerEmail)
+      )
     ),
 
   updateSessionViewedState: publicProcedure
-    .input(
-      z.object({
-        sessionId: z.string(),
-      })
-    )
+    .input(s.getStoredSessionSchema)
     .mutation(({ input: { sessionId } }) =>
-      db.updateSessionViewedState(sessionId)
+      handleAsyncWithTRPCError(() => db.updateSessionViewedState(sessionId))
     ),
 
   createStripeSession: publicProcedure
-    .input(
-      z.object({
-        priceId: z.string(),
-        currentUser: z.object({
-          name: z.string(),
-          email: z.string().email(),
-        }),
-      })
-    )
-    .mutation(async ({ input: { priceId, currentUser } }) => {
+    .input(s.createStripeSessionSchema)
+    .mutation(async ({ input: { priceId, currentCustomer } }) => {
       const session = await stripe.checkout.sessions.create({
         line_items: [
           {
@@ -83,8 +77,8 @@ export const appRouter = router({
           },
         ],
         metadata: {
-          nameOfUser: currentUser.name,
-          emailOfUser: currentUser.email,
+          nameOfCustomer: currentCustomer.name,
+          emailOfCustomer: currentCustomer.email,
         },
         mode: "payment",
         success_url:
@@ -96,10 +90,14 @@ export const appRouter = router({
     }),
 
   updateProduct: publicProcedure
-    .input(zodProductSchema)
-    .mutation(({ input }) => db.updateProduct(input)),
+    .input(s.productSchema)
+    .mutation(({ input }) =>
+      handleAsyncWithTRPCError(() => db.updateProduct(input))
+    ),
 
   deleteProduct: publicProcedure
-    .input(z.string())
-    .mutation(({ input }) => db.deleteProduct(input)),
+    .input(s.deleteProductSchema)
+    .mutation(({ input: { productId } }) =>
+      handleAsyncWithTRPCError(() => db.deleteProduct(productId))
+    ),
 });

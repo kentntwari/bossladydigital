@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
       if (eventType === "product.deleted") {
         const payload = data.object as Stripe.Product;
 
-        await caller({}).deleteProduct(payload.id);
+        await caller({}).deleteProduct({ productId: payload.id });
       }
 
       if (eventType === "checkout.session.completed") {
@@ -84,9 +84,9 @@ export default defineEventHandler(async (event) => {
 
         if (typeof productPurchasedId === "string") {
           await caller({}).createOrder({
-            user: {
-              name: session.metadata?.nameOfUser!,
-              email: session.metadata?.emailOfUser!,
+            customer: {
+              name: session.metadata?.nameOfCustomer!,
+              email: session.metadata?.emailOfCustomer!,
             },
             productId: productPurchasedId,
             sessionId: session.id,
