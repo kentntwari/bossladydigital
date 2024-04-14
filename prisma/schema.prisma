@@ -13,7 +13,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Customer {
   id     String  @id @default(cuid())
   name   String
   email  String  @unique
@@ -37,16 +37,16 @@ model Product {
 }
 
 model Order {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
-  payment   Payment  @relation(fields: [paymentId], references: [id])
-  userId    String   @map("user_id")
-  productId String   @map("product_id")
-  paymentId String   @map("payment_id")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  session   Session?
+  id         String   @id @default(cuid())
+  customer   Customer @relation(fields: [customerId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
+  payment    Payment  @relation(fields: [paymentId], references: [id])
+  customerId String   @map("user_id")
+  productId  String   @map("product_id")
+  paymentId  String   @map("payment_id")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  session    Session?
 
   @@map("orders")
 }
