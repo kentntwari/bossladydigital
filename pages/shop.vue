@@ -35,7 +35,7 @@
 
                   const session = await $client.createStripeSession.mutate({
                     priceId: product.stripePriceId,
-                    currentUser: {
+                    currentCustomer: {
                       name: `${$auth.user.given_name} ${$auth.user.family_name}`,
                       email: $auth.user.email,
                     },
